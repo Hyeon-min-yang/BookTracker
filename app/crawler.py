@@ -9,7 +9,8 @@ from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import urlparse
-
+from selenium.common.exceptions import NoSuchElementException
+import re
 
 load_dotenv()
 
@@ -54,7 +55,7 @@ def login_with_kakao(driver):
         menu_btn.click()
         time.sleep(2)
     except Exception as e:
-        print("❌ 메뉴 버튼 클릭 실패")
+        print("메뉴 버튼 클릭 실패")
         driver.save_screenshot("error_menu_click.png")
         raise
 
@@ -65,7 +66,7 @@ def login_with_kakao(driver):
         login_entry.click()
         time.sleep(2)
     except Exception as e:
-        print("❌ 로그인 진입 버튼 클릭 실패")
+        print("로그인 진입 버튼 클릭 실패")
         driver.save_screenshot("error_login_block.png")
         raise
 
@@ -76,7 +77,7 @@ def login_with_kakao(driver):
         )
         kakao_img_btn.click()
     except:
-        print("❌ 카카오 이미지 버튼 클릭 실패")
+        print("카카오 이미지 버튼 클릭 실패")
         driver.save_screenshot("error_kakao_img.png")
         raise
     
@@ -117,9 +118,18 @@ def get_recent_books_until_repeat(driver, latest_read=None):
         for item in items:
             try:
                 title = item.find_element(By.CLASS_NAME, "novel-name").text.strip()
-                last_read = item.find_element(By.CLASS_NAME, "novel-numerical-content").text.strip()
-                continue_label = item.find_element(By.CLASS_NAME, "novel-btn-continue").text.strip()
 
+                # 전체 회차 수
+                episode_spans = item.find_elements(By.CLASS_NAME, "novel-numerical-content")
+                total_eps = int(episode_spans[1].text.strip()) if len(episode_spans) > 1 else 0
+
+                # 마지막 회차
+                continue_label_elem = item.find_element(By.CLASS_NAME, "novel-btn-continue")
+                continue_label = continue_label_elem.text.strip()
+
+                #라벨에서 숫자 추출출
+                last_read = int(''.join(filter(str.isdigit, continue_label)))
+                
                 key = (title, last_read)
                 if key == latest_read:
                     return collected
@@ -129,8 +139,9 @@ def get_recent_books_until_repeat(driver, latest_read=None):
                     collected.append({
                         "title": title,
                         "last_read": last_read,
-                        "continue_label": continue_label
+                        "total_eps": total_eps
                     })
+                    print(collected[-1])
             except:
                 continue
 
@@ -144,12 +155,12 @@ def get_recent_books_until_repeat(driver, latest_read=None):
             if 'date/' in next_href:
                 next_page = int(next_href.split('date/')[-1].split('?')[0])
                 if next_page == current_page:
-                    print("📍 마지막 페이지입니다. 크롤링 종료.")
+                    print("마지막 페이지입니다. 크롤링 종료.")
                     break
 
             next_btn.click()
         except:
-            print("⛔️ 다음 페이지 버튼 없음. 종료.")
+            print("다음 페이지 버튼 없음. 종료.")
             break
 
     return collected
