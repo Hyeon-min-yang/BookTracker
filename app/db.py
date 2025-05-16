@@ -2,6 +2,7 @@ import sqlite3
 from typing import List, Dict
 import os
 from datetime import datetime
+import sqlite3
 
 DB_PATH = os.path.join("data", "books.db")
 
@@ -40,3 +41,32 @@ def save_books_to_db(book_list: List[Dict]):
 
     conn.commit()
     conn.close()
+    
+
+def load_books_from_db(db_path="data/books.db"):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT title, last_read, total_eps, crawled_at FROM reading_log")
+    rows = cursor.fetchall()
+    conn.close()
+
+    books = []
+    for row in rows:
+        crawled_at = row[3]
+        if crawled_at:
+            try:
+                crawled_at = datetime.fromisoformat(crawled_at)
+            except Exception:
+                crawled_at = None
+        else:
+            crawled_at = None
+
+        books.append({
+            "title": row[0],
+            "last_read": row[1],
+            "total_eps": row[2],
+            "crawled_at": crawled_at
+        })
+
+    return books

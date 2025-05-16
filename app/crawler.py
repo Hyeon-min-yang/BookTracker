@@ -41,10 +41,13 @@ def login_with_kakao(driver):
     
     #팝업 닫기
     try:
-        close_btn = driver.find_element(By.CSS_SELECTOR, 'div.layer-close-x3')
-        close_btn.click()
-        time.sleep(1)
-    except NoSuchElementException:
+        close_btn = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'div.layer-close-x3'))
+        )
+        if close_btn.is_displayed() and close_btn.is_enabled():
+            driver.execute_script("arguments[0].click();", close_btn)
+            time.sleep(1)
+    except (NoSuchElementException, Exception):
         pass
     
     # 메뉴 버튼 클릭
@@ -141,7 +144,7 @@ def get_recent_books_until_repeat(driver, latest_read=None):
                         "last_read": last_read,
                         "total_eps": total_eps
                     })
-                    print(collected[-1])
+                    # print(collected[-1])
             except:
                 continue
 
@@ -174,3 +177,4 @@ def crawl_recent_updates(latest_read=None):
         return get_recent_books_until_repeat(driver, latest_read)
     finally:
         driver.quit()
+
